@@ -44,6 +44,6 @@ To view more details such as number of positons searched, number of super search
 **check the console** after Lambda3 makes a move.
 
 
-**###Sources###***
+**###Sources###**
 Chess.js (Legal Moves/Rules Module): https://github.com/jhlywa/chess.js
 Tensor.js (Machine Learning Library): https://www.tensorflow.org/js

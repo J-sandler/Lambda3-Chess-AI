@@ -1,7 +1,7 @@
 # Lambda3-Chess-AI
 Alpha-beta/Neural net chess bot.
 
-## Why Lambda '3'?
+## Why '3'?
 Prominent Chess engines like Alpha Zero get their names
 from the notion of 'Zero' human assistance. The idea that 
 by means of machine learning alone, an AI can become dominant 

@@ -20,7 +20,6 @@ it uses 3 sources of pre-developed and hard coded human strategy:
   In a dire position, one will often have fewer moves, while the opposite is conversly true.
   Lambda3 is given the number of legal moves a player has to aid its evaluation. High move
   counts improve the board states evaluation, comparitevly discounting low legal move counts.
-   
   Additionally, Since we have access to the legal moves, we tell lambda3 to improve its evaluation of states
   where the legal moves are mosly captures and checks, as this generally corresponds to stronger positions.
   

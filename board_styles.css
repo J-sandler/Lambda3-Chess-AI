@@ -3,7 +3,7 @@
 }
 
 .chess-board {
-  font-size:50px;
+  font-size:1px;
   margin-right:15px;
   margin-left:15px;
 }
@@ -33,7 +33,7 @@
   width: 1.5em;
   height: 1.5em;
   text-align: center;
-  font-size: 352px;
+  font-size: 50px;
   line-height: 0;
 }
 
@@ -126,7 +126,7 @@ button {
   margin-left:8px;
 }
 
-#ascii_board {
+/* #ascii_board {
   font-size:350px;
   margin-left:10px;
-}
+} */

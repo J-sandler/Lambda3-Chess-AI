@@ -1,7 +1,7 @@
 const train_size=50000;// number of positions trained on (0 to 4.4M);
 const buffer=0;// number of positions skipped in data set;
-const epochs=2;
-const batch_size=1024;
+const epochs=4;
+const batch_size=4096;
 
 // const data=[];  
 // const data2=[]; 

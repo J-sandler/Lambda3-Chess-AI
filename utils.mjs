@@ -1,7 +1,7 @@
 import {Chess} from './Chess.mjs';
 var chess=new Chess();
-const search_depth=4;
-const depth_limit=5;
+const search_depth=3;
+const depth_limit=6;
 var memo=new Map();
 var caches=new Map();
 var c=0,cm=0,prunes=0,supers=0,mx_s=0;
@@ -201,31 +201,31 @@ async function evaluate(fen,m,moves) {
   a=(m==0)?capture_cnt(moves)/moves.length:-capture_cnt(moves)/moves.length;
 
   // account for number of legal moves
-  o=(m==0)?moves.length/400:-moves.length/400;
+  o=(m==0)?moves.length/200:-moves.length/200;
 
   // use nn as a tie breaker
-  // if (a+o+s==0) {
-  //    r=((
-  //       lzeroC.predict(
-  //         tf.tensor(
-  //           [
-  //               fen_encode(
-  //                 fen
-  //                 .split(" ")
-  //                 .slice(0,6)
-  //                 .join(" ")
-  //               )
-  //           ]
-  //           ,
-  //           [1,13,8,8]
-  //         )
-  //       )
-  //     ));
-  //   r=await r.array();
-  //   r=r[0][0];
-  // }
+  if (a+o+s==0) {
+     r=((
+        lzeroC.predict(
+          tf.tensor(
+            [
+                fen_encode(
+                  fen
+                  .split(" ")
+                  .slice(0,6)
+                  .join(" ")
+                )
+            ]
+            ,
+            [1,13,8,8]
+          )
+        )
+      ));
+    r=await r.array();
+    r=r[0][0];
+  }
 
-  return s+r+a+o;
+  return s+r+(a/2)+o;
 }
 
 function update_eval(e) {
@@ -279,8 +279,8 @@ async function mini_max(alpha,beta,legal_moves,depth,move,fen) {
       );
     }
 
-    // update eval if leafnode
-    else if (depth>depth_limit||(depth>=search_depth&&candidate[1]!='x'&&candidate[candidate.length-1]!='+')) {
+    // update eval if leafnode [&&candidate[candidate.length-1]!='+']
+    else if (depth==depth_limit||(depth>=search_depth&&candidate[2]!='x'&&candidate[1]!='x'&&candidate[candidate.length-1]!='+')) {
       let nn_evl=await evaluate(key_fen,flip(move),local_chess.moves());
       evl=(move==0)?(
         nn_evl>evl?nn_evl:evl
@@ -392,15 +392,69 @@ function capture_cnt(moves) {
 }
 
 function update_ascii_board() {
-  let b=document.getElementById('ascii-board');
-  let ascii=chess.ascii(),out="";
-
-  for (let z in ascii) 
-    out+=emojify(ascii[z]);
+  //let b=document.getElementById('ascii-board');
+  let ascii=trim(chess.ascii());
   
-  b.innerText=out.slice(0,out.length-5);
+  let t=0;
+  for (let r=0;r<8;r++) {
+    for (let c=0;c<8;c++) {
+      let d=document
+      .getElementById(id_ify(r,c));
+
+      let char=emojify(ascii[t]);
+      t++;
+      if (char=='\n') {
+        c--;
+        continue;
+      }
+      d.innerText=char;
+    }
+  }
+  
+  //b.innerText=out.slice(0,out.length-5);
 }
 
+function id_ify(r,c) {
+  let rank=8-r;
+  let file=ind_to_rank[c];
+
+  let s=file+rank.toString();
+  return s;
+}
+
+let ind_to_rank={
+  0:'a',
+  1:'b',
+  2:'c',
+  3:'d',
+  4:'e',
+  5:'f',
+  6:'g',
+  7:'h'
+}
+
+function trim(ascii) {
+  let out='',o=0,bs=0;
+  for (let i=0;i<ascii.length;i++) {
+    switch (ascii[i]) {
+      case '-': continue;
+      case '_': continue;
+      case '+': continue;
+      case '|': continue;
+      case ' ': continue;
+      case 'b': bs++;
+    }
+
+    if (!isNaN(parseInt(ascii[i]))) continue;
+    
+    if (ascii[i]=='b'&&bs==3) break;
+    else if (ascii[i]=='.') out+=' ';
+    else out+=ascii[i];
+
+    o++;
+  }
+  return out;
+}
 function make_move(move,type='generated') {
   if (type=='input') move=move.value;
   
@@ -433,25 +487,25 @@ function dp(n,b) {
 }
 
 function emojify(char) {
-  if (!isNaN(parseInt(char))||char=='|') 
-    return char;
+  if (!isNaN(parseInt(char))) 
+    return '';
+
   switch(char) {
+    case 'r': return '♜';
+    case 'n': return '♞';
+    case 'b': return '♝';
+    case 'q': return '♛';
+    case 'k': return '♚';
+    case 'p': return '♟';
 
-    case 'r': return '.♜';
-    case 'n': return '.♞';
-    case 'b': return '.♝';
-    case 'q': return '.♛';
-    case 'k': return '.♚';
-    case 'p': return '.♟';
+    case 'R': return '♖';
+    case 'N': return '♘';
+    case 'B': return '♗';
+    case 'Q': return '♕';
+    case 'K': return '♔';
+    case 'P': return '♙';
 
-    case 'R': return '.♖';
-    case 'N': return '.♘';
-    case 'B': return '.♗';
-    case 'Q': return '.♕';
-    case 'K': return '.♔';
-    case 'P': return '.♙';
-
-    case '.': return '☐';
+    case '.': return '';
     case '-': return '-';
     case '+': return '.+.';
     
@@ -463,10 +517,11 @@ function emojify(char) {
     case 'g': return '';
     case 'h': return '';
   }
+
   return char;
 }
 fn("update");
-update_ascii_board();
+//update_ascii_board();
 window.fn=fn;
 window.load_caches=load_caches;
 window.update_ascii_board=update_ascii_board;

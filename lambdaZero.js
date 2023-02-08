@@ -1,4 +1,4 @@
-const lzerA_lrate=3e-10;
+const lzerA_lrate=3e-4;
 const hiddenLayers=8;
 const unitSize=8;
 var boardinternals=[

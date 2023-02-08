@@ -43,3 +43,7 @@ i.e 'Nxe4', and click the checkmark.
 To view more details such as number of positons searched, number of super searches, caches and estimated prune optimizations,
 **check the console** after Lambda3 makes a move.
 
+
+**###Sources###***
+Chess.js (Legal Moves/Rules Module): https://github.com/jhlywa/chess.js
+Tensor.js (Machine Learning Library): https://www.tensorflow.org/js

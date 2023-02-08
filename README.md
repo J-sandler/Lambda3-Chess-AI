@@ -40,6 +40,8 @@ its evaluation of the position left of the board.
 If instead you would like to **input a move yourself**, submit your move in the input box in formal notation, 
 i.e 'Nxe4', and click the checkmark.
 
+Similarly, you can **load any legal position** using by inputting the *FEN notation* of the position and submitting.
+
 To view more details such as number of positons searched, number of super searches, caches and estimated prune optimizations,
 **check the console** after Lambda3 makes a move.
 

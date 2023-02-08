@@ -1,11 +1,14 @@
 import {Chess} from './Chess.mjs';
 var chess=new Chess();
-const search_depth=3;
-const depth_limit=6;
+const tree_width=2;
+const depth_limit=7;
 var memo=new Map();
 var caches=new Map();
 var c=0,cm=0,prunes=0,supers=0,mx_s=0;
 const max_caches=Infinity;
+const nn=true;
+
+//console.log(sum('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq e4 0 1'));
 
 async function fn(type="generate") {
   let move=moves[moves.length-1];
@@ -20,8 +23,8 @@ async function fn(type="generate") {
 
   if (type=="update") return;
   memo=new Map();
-  console.log("[Generating move at depth", search_depth,"]");
-  mini_max(-Infinity,Infinity,await sort(chess.moves()),1,getmve(),chess.fen());
+  console.log("[Generating move at depth", tree_width,"]");
+  mini_max(-Infinity,Infinity,await sort(chess.moves()),1,get_move(chess),chess.fen());
   //generateMove(legalMoves,1,getmve(),chess.fen(),"",-Infinity,Infinity);
 }
 
@@ -166,6 +169,7 @@ function sum(fen) {
     fenSum += key(char);
   }
 
+  //console.log(fen, fenSum);
   return fenSum;
 }
 
@@ -200,11 +204,11 @@ async function evaluate(fen,m,moves) {
   // take into account who is attacking
   a=(m==0)?capture_cnt(moves)/moves.length:-capture_cnt(moves)/moves.length;
 
-  // account for number of legal moves
-  o=(m==0)?moves.length/200:-moves.length/200;
+  // account for piece activity
+  o=(m==0)?await activity(moves):-await activity(moves);
 
   // use nn as a tie breaker
-  if (a+o+s==0) {
+  if (nn) {
      r=((
         lzeroC.predict(
           tf.tensor(
@@ -225,7 +229,31 @@ async function evaluate(fen,m,moves) {
     r=r[0][0];
   }
 
-  return s+r+(a/2)+o;
+  //   //console.log(r);
+  // }
+
+  return s+sigmoid(a)+o+r;
+}
+
+async function activity(moves) {
+  let act=new Map();
+  for (let m in moves) {
+    if (moves[m].length>2) {
+      if (moves[m][moves[m].length-1]=='+'||
+      moves[m][moves[m].length-1]=='#') {
+        act.set(moves[m].slice(
+          moves[m].length-3,
+          moves[m].length-1),1);
+      } else {
+        act.set(moves[m].slice(
+          moves[m].length-2,
+          moves[m].length),1);
+      }
+    }
+  }
+
+  //console.log(act.size);
+  return act.size/64;
 }
 
 function update_eval(e) {
@@ -238,12 +266,16 @@ function update_eval(e) {
 // best move given the search_depth
 async function mini_max(alpha,beta,legal_moves,depth,move,fen) {
 
-  let evl=(move==0)?-Infinity:Infinity;
-  let best_move;
+  // keeps evaluation consistent:
+  let search_depth=(move==0)?tree_width:tree_width;
+
+  let best_moves=new Map();
 
   for (let i in legal_moves) {
+    let evl=(move==0)?-Infinity:Infinity;
+
     ps++;
-    const pre_vl=evl;
+
     let candidate=legal_moves[i];
 
     let local_chess=new Chess(fen);
@@ -281,7 +313,7 @@ async function mini_max(alpha,beta,legal_moves,depth,move,fen) {
 
     // update eval if leafnode [&&candidate[candidate.length-1]!='+']
     else if (depth==depth_limit||(depth>=search_depth&&candidate[2]!='x'&&candidate[1]!='x'&&candidate[candidate.length-1]!='+')) {
-      let nn_evl=await evaluate(key_fen,flip(move),local_chess.moves());
+      let nn_evl=await evaluate(key_fen,flip(move),await sort(local_chess.moves()));
       evl=(move==0)?(
         nn_evl>evl?nn_evl:evl
       ):(
@@ -307,8 +339,6 @@ async function mini_max(alpha,beta,legal_moves,depth,move,fen) {
         recurse_result
       );
     }
-    // track best move
-    best_move=(pre_vl==evl)?best_move:candidate;
 
     // track super searches
     supers=(depth>search_depth)?supers+1:supers;
@@ -325,17 +355,26 @@ async function mini_max(alpha,beta,legal_moves,depth,move,fen) {
       evl:
       beta
     ):beta;
-
+    
+    // track best move
+    best_moves.set(evl,candidate);
+    
     if (beta<=alpha) {
       prunes+=Math.pow(legal_moves.length-i,search_depth-depth);
       break;
     }
   }
 
+  let b_eval=best(best_moves,move);
+  let best_move=best_moves.get(b_eval);
+
   // if done, output best move and eval
   if (depth==1) {
+    console.log(best_moves);
+    // let best_move=await best_moves[0];
+
     console.log("-------");
-    console.log("Best Move: ", best_move, "[", evl,"]");
+    console.log("Best Move: ", best_move, "[", b_eval,"]");
     console.log("Total Postions Searched: ", ps);
     console.log("Positions Cached ",c);
     console.log("Positions memoized: ", cm);
@@ -345,17 +384,36 @@ async function mini_max(alpha,beta,legal_moves,depth,move,fen) {
     ps=0;c=0;cm=0;prunes=0;supers=0,mx_s=0;
 
     make_move(best_move);
-    eval_update(evl);
+    eval_update(b_eval);
 
-    if (chess.moves().length==0) alert("Game Over!")
+    if (chess.moves().length==0) alert("Game Over!", (m==0)?"White Wins!":"Black Wins!");
   }
 
   // memoize
   let local_chess=new Chess(fen);
   local_chess.move(best_move);
-  memo.set(local_chess.fen(),evl);
+  memo.set(local_chess.fen(),b_eval);
   
-  return evl;
+  return b_eval;
+}
+function best(best_moves,move) {
+  let best_move=""; let b_eval=(move==0)?-Infinity:Infinity;
+
+  for (let [key,value] of best_moves) {
+    if (move==0) {
+      if (key>b_eval) {
+        best_move=value;
+        b_eval=key;
+      }
+    } 
+    else {
+      if (key<b_eval) {
+        b_eval=key;
+        best_move=value;
+      }
+    }
+  }
+  return b_eval;
 }
 
 // prioritizes more forcing moves
@@ -364,7 +422,7 @@ async function sort(moves) {
   let els=[];
   for (let m in moves) {
     let move=moves[m];
-    if (move[1]=='x'||move[move.length-1]=='+') {
+    if (move[1]=='x'||move[2]=='x'||move[move.length-1]=='+'||move=='O-O'||move=='O-O-O') {
       capts.push(move);
     } 
     else {
@@ -456,8 +514,18 @@ function trim(ascii) {
   return out;
 }
 function make_move(move,type='generated') {
-  if (type=='input') move=move.value;
+  if (type=='input') 
+    move=move.value;
   
+  // if is fen
+  if (move.length>6) {
+      chess=new Chess(move);
+      document.getElementById('played-moves').innerHTML="";
+      update_ascii_board();
+      return 0;
+  }
+  
+  // check legality
   if (!(chess.moves().includes(move))) return 0;
 
   chess.move(move);
@@ -520,10 +588,16 @@ function emojify(char) {
 
   return char;
 }
+
+function get_move(chess) {
+  return (chess.fen().split(" ")[1]=='w')?0:1;
+}
+
 fn("update");
 //update_ascii_board();
 window.fn=fn;
 window.load_caches=load_caches;
 window.update_ascii_board=update_ascii_board;
 window.make_move=make_move;
+window.mve=mve;
  

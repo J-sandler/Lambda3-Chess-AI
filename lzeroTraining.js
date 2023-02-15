@@ -1,20 +1,22 @@
 const train_size=50000;// number of positions trained on (0 to 4.4M);
-const buffer=0;// number of positions skipped in data set;
-const epochs=4;
-const batch_size=4096;
+let buffer=0;// number of positions skipped in data set;
+const epochs=5;
+const batch_size=train_size;
+let inp = 1;
 
 // const data=[];  
 // const data2=[]; 
 // const evals=[];
 
-const wpos=new Array(parseInt(train_size));
-const bpos=new Array(parseInt(train_size));
-const wevals=new Array(parseInt(train_size));
-const bevals=new Array(parseInt(train_size));
+let wpos=new Array();
+// const bpos=new Array(parseInt(train_size));
+let wevals=new Array();
+// const bevals=new Array(parseInt(train_size));
 
 const test_data=[];
 
 function readFile(input) {
+  inp=input;
   console.log("INPUT PROCESSING");
   return helper(input);
   
@@ -79,5 +81,11 @@ async function train() {
   await lzeroC.save('localstorage://lzeroC');
   await lzeroD.save('localstorage://lzeroD');
 
+  if (buffer<4000000) {
+    buffer+=train_size;
+    wpos=[];wevals=[];
+    readFile(inp);
+    train();
+  } 
 }
 

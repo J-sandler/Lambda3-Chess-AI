@@ -1,6 +1,7 @@
-const lzerA_lrate=3e-4;
-const hiddenLayers=8;
+const lzerA_lrate=4e-4;
+const hiddenLayers=10;
 const unitSize=8;
+const optimizer=tf.train.adam(lzerA_lrate);
 var boardinternals=[
   [-5,-3,-3.5,-9,-100,-3.5,-3,-5],
   [-1,-1,-1,-1,-1,-1,-1,-1],
@@ -16,7 +17,7 @@ const lzeroA=tf.sequential();
 const lzeroB=tf.sequential();
 let lzeroC= tf.sequential();
 let lzeroD= tf.sequential();
-forge_c();forge_d();
+forge_c();//forge_d();
 
 //lzero A:
 function forge_a() {
@@ -118,11 +119,18 @@ lzeroC.add(tf.layers.maxPooling2d({
 //lzeroC.add(tf.layers.flatten());
 
 for (let i=0;i<hiddenLayers;i++) {
+  if (i%2==0) {  
   lzeroC.add(tf.layers.dense({
   units: 64,
   kernelInitializer: 'varianceScaling',
-  activation: 'relu'
-}));
+  activation: 'relu'}));
+  }
+  else {
+    lzeroC.add(tf.layers.dense({
+    units: 64,
+    kernelInitializer: 'varianceScaling',
+    activation: 'linear'})); 
+  }
 }
 
 lzeroC.add(tf.layers.flatten());
@@ -136,11 +144,11 @@ lzeroC.add(tf.layers.flatten());
 lzeroC.add(tf.layers.dense({
     units: 1,
     kernelInitializer: 'varianceScaling',
-    activation: 'sigmoid'
+    activation: 'linear'
   }));
 
 lzeroC.compile({
-  optimizer: tf.train.adam(lzerA_lrate),
+  optimizer: optimizer,
   loss: tf.losses.meanSquaredError,
   metrics: ['accuracy'],
 });
@@ -161,39 +169,63 @@ if (load) {
 }
 
 lzeroD.add(tf.layers.conv2d({
-  inputShape: [13,8,8],
+  inputShape:[13,8,8],
   kernelSize: 3,
   filters: 32,
   strides: 1,
-  activation: 'linear',
+  activation: 'relu',
   kernelInitializer: 'varianceScaling'
 }));
 
-// lzeroD.add(tf.layers.maxPooling2d({
+lzeroD.add(tf.layers.conv2d({
+  kernelSize: 3,
+  filters: 32,
+  strides: 1,
+  activation: 'relu',
+  kernelInitializer: 'varianceScaling'
+}));
+
+lzeroD.add(tf.layers.maxPooling2d({
+  poolSize: [1,1],
+  strides: [1,1]
+}));
+
+// lzeroC.add(tf.layers.maxPooling2d({
 //   poolSize: [2,2],
 //   strides: [2,2]
 // }));
 
 
-for (let i=0;i<hiddenLayers;i++) {
-  lzeroD.add(tf.layers.dense({
-  units: 64,
-  kernelInitializer: 'varianceScaling',
-  activation: 'relu'
-}));
-}
+// lzeroC.add(tf.layers.dense({
+//   units: 64,
+//   kernelInitializer: 'varianceScaling',
+//   activation: 'linear'
+// }));
 
+//lzeroC.add(tf.layers.flatten());
+lzeroD.add(tf.layers.dense({
+    units: 64,
+    kernelInitializer: 'varianceScaling',
+    activation: 'linear'
+}));
 
 lzeroD.add(tf.layers.flatten());
+
 lzeroD.add(tf.layers.dense({
-    units: 1,
+    units: 64,
     kernelInitializer: 'varianceScaling',
-    activation: 'sigmoid'
-  }));
+    activation: 'linear'
+}));
+
+// lzeroC.add(tf.layers.dense({
+//     units: 832,
+//     kernelInitializer: 'varianceScaling',
+//     activation: 'relu'
+//   }));
 
 
 lzeroD.compile({
-  optimizer: tf.train.adam(lzerA_lrate),
+  optimizer: optimizer,
   loss: tf.losses.meanSquaredError,
   metrics: ['accuracy'],
 });

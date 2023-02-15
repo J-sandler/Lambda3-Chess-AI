@@ -7,7 +7,7 @@ var tempEval=0;
 var moveNum=1;
 var mve=0;
 var update=false;
-const tolerance=1.5;
+const tolerance=5;
 
 //event listeners
 // document.addEventListener("dragstart", event => {
@@ -426,7 +426,7 @@ function fen2bi(fen,m) {
   let d=(m=="w")?-1:1;
   let arr=fen.split("/");
   let out=[];
-  for (i in arr) {
+  for (let i in arr) {
     let row=[];
     for (let a=0;a<8;a++) {row.push(0);}
     let c=0,a=0;
@@ -501,10 +501,18 @@ function helper(input) {
   let reader=new FileReader();
   
   reader.readAsText(file);
-  reader.onload=function() {
+  reader.onload=async function() {
     let lines=reader.result.split("\n");
     let i=0, j=0;
 	  for (let l in lines) {
+
+      if (i<buffer) {
+        i++;
+      } 
+      else 
+      {
+
+      
       // let line=lines[l].split(",")
       // let fen=((line.split(","))[0]);
       // console.log(fen)
@@ -546,16 +554,18 @@ function helper(input) {
       //   j++;
       // }
 
-      if (!isNaN(eval)&&i<train_size) {
-        wpos[i]=fen_encode(fen);
-        wevals[i]=eval;
+      if (!isNaN(eval)&&i<train_size+buffer) {
+        j=i-buffer;
+        wpos.push(await fen_encode(fen));
+        wevals.push(eval);
         i++;
       }
 
-      if (i>=train_size) {
-        console.log(i, 'Inputs proccessed');
+      if (i>=train_size+buffer) {
+        console.log(i-buffer, 'Inputs proccessed');
         train();
         return 0;
+      }
       }
 
       // if (i+j>=(2*train_size)) {
@@ -578,8 +588,8 @@ function fen_sum(fen) {
   return fenSum;
 }
 
-function fen_encode(fen) {
-  fen = fen.split(" ");
+async function fen_encode(fen) {
+  fen = await fen.split(" ");
   let board_string = fen[0].split("/");
   let out=compile_frames();
 
@@ -596,7 +606,7 @@ function fen_encode(fen) {
     }
   }
   // add meta data
-  let rest=fen.slice(1,fen.length);
+  let rest=await fen.slice(1,fen.length);
 
   for (let i in rest) {
     if (rest[i]=="b") {
